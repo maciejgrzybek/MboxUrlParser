@@ -2,13 +2,14 @@
 #include <boost/spirit/home/qi.hpp>
 #include <boost/fusion/tuple.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/phoenix.hpp>
 
 using namespace boost::spirit;
 
 namespace phx = boost::phoenix;
 
 template <typename Iterator>
-struct myGrammar : qi::grammar<Iterator, std::string()>
+struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
 {
     myGrammar() : myGrammar::base_type(start)
     {
@@ -20,7 +21,7 @@ struct myGrammar : qi::grammar<Iterator, std::string()>
 
         notURL = +(!URL >> char_);
 
-        separator = qi::eol | qi::space; // FIXME check this and add correct values
+        separator = qi::eol | qi::space | char_("\""); // FIXME check this and add correct values
 
         tld =
             (
@@ -29,7 +30,7 @@ struct myGrammar : qi::grammar<Iterator, std::string()>
 
         domain =
             (
-              +( +char_("a-zA-Z") >> char_(".") ) >>
+              +( +( char_("a-zA-Z") | char_("-") ) >> char_(".") ) >>
               tld
             );
 
@@ -38,8 +39,9 @@ struct myGrammar : qi::grammar<Iterator, std::string()>
               lit(":") >> uint_
             );
 
-        key   =  qi::char_("a-zA-Z_\\-") >> *qi::char_("a-zA-Z_0-9\\-");
-        value = *qi::char_("a-zA-Z_0-9\\-@.");
+        key   =  ( char_("a-zA-Z_") | char_("-") ) >>
+                 *( char_("a-zA-Z_0-9") | char_("-") );
+        value =  *( char_("a-zA-Z_0-9@.") | char_("-") );
 
         pair =
             (
@@ -80,12 +82,12 @@ struct myGrammar : qi::grammar<Iterator, std::string()>
                 //qi::omit[*char_("a-zA-Z")] >>
                 //+int_/*char_("a-zA-Z]")*/ >> url [_val = _1] >> +int_
 //                *(*(!URL >> omit[notURL]) >> URL)
-                *(*notURL >> URL [_val = _1])
+                *(*notURL >> URL [phx::push_back(_val,_1)])
             )
         ;
     }
 
-    qi::rule<Iterator, std::string()> start;
+    qi::rule<Iterator, std::vector<std::string>()> start;
     qi::rule<Iterator, std::string()> URL;
     qi::rule<Iterator, std::string()> notURL;
     qi::rule<Iterator, std::string()> separator;
@@ -119,7 +121,7 @@ while (std::getline(std::cin, str))
     continue;
 
   std::string::iterator strbegin = str.begin();
-  std::string p;
+  std::vector<std::string> p;
 
   bool r = qi::parse(strbegin, str.end(), grammar, p);
 /*  bool r = qi::phrase_parse(strbegin, str.end(),
@@ -131,7 +133,10 @@ while (std::getline(std::cin, str))
   if (r && strbegin == str.end())
   {
 //    std::cout << "Parsing succeeded!" << std::endl;
-    std::cout << line << " : " << p << std::endl;
+    for (auto& i : p)
+    {
+      std::cout << line << " : " << i << std::endl;
+    }
   }
   else
   {

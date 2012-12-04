@@ -39,7 +39,7 @@ struct myGrammar : qi::grammar<Iterator, std::string()>
             );
 
         key   =  qi::char_("a-zA-Z_\\-") >> *qi::char_("a-zA-Z_0-9\\-");
-        value = +qi::char_("a-zA-Z_0-9\\-");
+        value = +qi::char_("a-zA-Z_0-9\\-@.");
 
         pair =
             (
@@ -48,16 +48,17 @@ struct myGrammar : qi::grammar<Iterator, std::string()>
 
         params =
             (
-              lit("?") >>
+              char_("?") >>
               pair >>
-              *(lit("&") >> pair)
+              *(char_("&") >> pair)
             );
 
 
         path =
             (
               char_("/") >>
-              *(+char_("a-zA-Z_0-9\\-") >> -char_("/")) >>
+              *(+( char_("a-zA-Z_0-9,.") | char_("-") ) >>
+              -char_("/")) >>
               -params
             );
 

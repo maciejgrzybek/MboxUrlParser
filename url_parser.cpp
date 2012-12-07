@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/spirit/home/qi.hpp>
+#include <boost/spirit/include/qi_hold.hpp>
 #include <boost/fusion/tuple.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/phoenix.hpp>
@@ -95,7 +96,7 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
         URL =
             (
               -( proto >> lit("://") ) >>
-              //-auth_string >>
+              -hold[auth_string] >>
               domain >>
               -port >>
               -path

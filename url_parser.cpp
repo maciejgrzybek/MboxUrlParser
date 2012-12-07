@@ -19,13 +19,37 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
         using qi::_1;
         using ascii::char_;
 
-        notURL = +(!URL >> char_);
+        notURL = (!URL >> char_);
 
-        separator = qi::eol | qi::space | char_("\""); // FIXME check this and add correct values
+        username =
+            (
+              +((qi::alnum | qi::punct) - char_(":@"))
+            );
+
+        password =
+            (
+              +((qi::alnum | qi::punct) - char_("@"))
+            );
+
+        auth_string =
+            (
+              username >> -(char_(":") >> password) >> char_("@")
+            );
 
         tld =
             (
-              lit("com") | lit("pl") | lit("us") | lit("uk") | lit("ch")
+              lit("info") |
+              lit("com") |
+              lit("org") |
+              lit("net") |
+              lit("biz") |
+              lit("eu") |
+              lit("pl") |
+              lit("us") |
+              lit("uk") |
+              lit("ch") |
+              lit("tv") |
+              lit("fm")
             );
 
         domain =
@@ -39,9 +63,8 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
               lit(":") >> uint_
             );
 
-        key   =  ( char_("a-zA-Z_") | char_("-") ) >>
-                 *( char_("a-zA-Z_0-9") | char_("-") );
-        value =  *( char_("a-zA-Z_0-9@.") | char_("-") );
+        key   =  +( qi::alnum | qi::punct );
+        value =  *( qi::alnum | qi::punct );
 
         pair =
             (
@@ -72,6 +95,7 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
         URL =
             (
               -( proto >> lit("://") ) >>
+              //-auth_string >>
               domain >>
               -port >>
               -path
@@ -79,10 +103,8 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
 
         start = // eps             [_val = 0] >>
             (
-                //qi::omit[*char_("a-zA-Z")] >>
-                //+int_/*char_("a-zA-Z]")*/ >> url [_val = _1] >> +int_
 //                *(*(!URL >> omit[notURL]) >> URL)
-                *(*notURL >> URL [phx::push_back(_val,_1)])
+                *(*notURL >> URL [phx::push_back(_val,_1)] >> *notURL)
             )
         ;
     }
@@ -91,6 +113,9 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
     qi::rule<Iterator, std::string()> URL;
     qi::rule<Iterator, std::string()> notURL;
     qi::rule<Iterator, std::string()> separator;
+    qi::rule<Iterator, std::string()> username;
+    qi::rule<Iterator, std::string()> password;
+    qi::rule<Iterator, std::string()> auth_string;
     qi::rule<Iterator, std::string()> tld;
     qi::rule<Iterator, std::string()> domain;
     qi::rule<Iterator, unsigned()> port;
@@ -145,8 +170,6 @@ while (std::getline(std::cin, str))
     std::cout << "Stopped at: " << rest << std::endl;*/
   }
 }
-
-std::cout << "Bye :)" << std::endl;
 
 return 0;
 }

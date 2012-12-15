@@ -90,12 +90,12 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
 
         proto =
             (
-              ( lit("http") >> -lit("s") ) | lit("ftp")
+              ( qi::string("http") >> -qi::string("s") ) | qi::string("ftp")
             );
 
         URL =
             (
-              -( proto >> lit("://") ) >>
+              -( proto >> qi::string("://") ) >>
               -hold[auth_string] >>
               domain >>
               -port >>

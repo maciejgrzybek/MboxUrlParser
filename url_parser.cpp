@@ -1,4 +1,6 @@
 #include <iostream>
+#include <curl/curl.h>
+
 #include <boost/spirit/home/qi.hpp>
 #include <boost/spirit/include/qi_hold.hpp>
 #include <boost/fusion/tuple.hpp>
@@ -133,32 +135,25 @@ int main(void)
 
 size_t line = 0;
 
-std::string str;
+std::string str_in;
 unsigned result;
 myGrammar<std::string::iterator> grammar;
-while (std::getline(std::cin, str))
+while (std::getline(std::cin, str_in))
 {
   ++line;
 
-  /*if (str.empty() || str[0] == 'q' || str[0] == 'Q')
-    break;*/
-
-  if (str.empty())
+  if (str_in.empty())
     continue;
+
+  std::string str(curl_unescape(str_in.c_str(),str_in.length()));
 
   std::string::iterator strbegin = str.begin();
   std::vector<std::string> p;
 
   bool r = qi::parse(strbegin, str.end(), grammar, p);
-/*  bool r = qi::phrase_parse(strbegin, str.end(),
-      "(" >> qi::double_ >> ", " >> qi::double_ >> ")",
-      qi::char_("a-zA-Z"),
-      p
-      );*/
   
   if (r && strbegin == str.end())
   {
-//    std::cout << "Parsing succeeded!" << std::endl;
     for (auto& i : p)
     {
       std::cout << line << " : " << i << std::endl;
@@ -166,9 +161,7 @@ while (std::getline(std::cin, str))
   }
   else
   {
-/*    std::string rest(strbegin,str.end());
-    std::cout << "Parsing failed!" << std::endl;
-    std::cout << "Stopped at: " << rest << std::endl;*/
+    // parsing failed, no action needed
   }
 }
 

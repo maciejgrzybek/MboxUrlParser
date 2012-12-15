@@ -1,15 +1,19 @@
 #include <iostream>
-#include <curl/curl.h>
+#include <algorithm>
 
 #include <boost/spirit/home/qi.hpp>
 #include <boost/spirit/include/qi_hold.hpp>
-#include <boost/fusion/tuple.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/phoenix.hpp>
+#include <boost/fusion/tuple.hpp>
+#include <boost/program_options.hpp>
+
+#include <curl/curl.h>
 
 using namespace boost::spirit;
 
 namespace phx = boost::phoenix;
+namespace po = boost::program_options;
 
 template <typename Iterator>
 struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
@@ -130,14 +134,38 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
     qi::rule<Iterator, std::string()> value;
 };
 
-int main(void)
+int main(int argc, char* argv[])
 {
+
+po::options_description desc("Allowed options");
+desc.add_options()
+    ("help", "this is what you read")
+    ("omit-new-lines", "skips new line characters")
+;
+
+po::variables_map vm;
+po::store(po::parse_command_line(argc, argv, desc), vm);
+po::notify(vm);
+
+if (vm.count("help") > 0)
+{
+  std::cout << desc << std::endl;
+  return 1;
+}
+
+bool omit = false;
+
+if (vm.count("omit-new-lines") > 0)
+{
+  omit = true;
+}
 
 size_t line = 0;
 
 std::string str_in;
 unsigned result;
 myGrammar<std::string::iterator> grammar;
+
 while (std::getline(std::cin, str_in))
 {
   ++line;
@@ -145,7 +173,12 @@ while (std::getline(std::cin, str_in))
   if (str_in.empty())
     continue;
 
-  std::string str(curl_unescape(str_in.c_str(),str_in.length()));
+/*
+  if (omit)
+    str_in.erase(std::remove(str_in.begin(), str_in.end(), '\n'), str_in.end());
+    */
+
+  std::string str = curl_unescape(str_in.c_str(),str_in.length());
 
   std::string::iterator strbegin = str.begin();
   std::vector<std::string> p;

@@ -1,9 +1,15 @@
+#include <string>
+#include <vector>
+
 #include <boost/spirit/home/qi.hpp>
+#include <boost/spirit/include/qi_and_predicate.hpp>
 #include <boost/spirit/include/qi_hold.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/spirit/include/qi_repeat.hpp>
 #include <boost/fusion/tuple.hpp>
+
+#include "tlds.hpp"
 
 using namespace boost::spirit;
 
@@ -20,7 +26,7 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
         using qi::_1;
         using ascii::char_;
 
-        notURL = (!URL >> char_);
+        notURL = char_;//(!URL >> char_);
 
         username =
             (
@@ -39,15 +45,13 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
 
         tld =
             (
-              qi::repeat(2,4)[char_("a-zA-Z")]
+              tlds_
             );
 
         domain =
             (
-              +( +( char_("a-zA-Z") | char_("-") ) >> char_(".") ) >>
-              omit[tld]
-              // TODO Do not omit here,
-              //but avoid doubling tld part in output
+              +( +(char_("a-zA-Z_\\-")) >> char_(".") ) >>
+              tld >> &~(char_("a-zA-Z_\\-"))
             );
 
         port %=
@@ -95,14 +99,15 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
 
         start =
             (
-                *(*notURL >> URL [phx::push_back(_val,_1)] >> *notURL)
+                  +(URL | notURL)
+//                *(*notURL >> URL [phx::push_back(_val,_1)] >> *notURL)
             )
         ;
     }
 
     qi::rule<Iterator, std::vector<std::string>()> start;
     qi::rule<Iterator, std::string()> URL;
-    qi::rule<Iterator, std::string()> notURL;
+    qi::rule<Iterator, void()> notURL;
     qi::rule<Iterator, std::string()> separator;
     qi::rule<Iterator, std::string()> username;
     qi::rule<Iterator, std::string()> password;
@@ -116,5 +121,7 @@ struct myGrammar : qi::grammar<Iterator, std::vector<std::string>()>
     qi::rule<Iterator, std::string()> pair;
     qi::rule<Iterator, std::string()> key;
     qi::rule<Iterator, std::string()> value;
+
+    tlds tlds_;
 };
 

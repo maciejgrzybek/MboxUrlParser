@@ -11,6 +11,8 @@
 
 namespace po = boost::program_options;
 
+namespace phx = boost::phoenix;
+
 int main(int argc, char* argv[])
 {
 
@@ -65,7 +67,12 @@ while (!qtin.atEnd())
 
   std::vector<std::string> p;
 
-  bool r = qi::parse(begin, end, grammar, p);
+  bool r = qi::phrase_parse(begin, end,
+                +(grammar.URL | grammar.notURL), // not using grammar.start(), because of inlining
+                qi::char_("\"'<>,;"),
+                p);
+
+  //bool r = qi::parse(begin, end, grammar, p);
   
   if (r && begin == end)
   {

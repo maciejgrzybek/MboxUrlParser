@@ -8,7 +8,9 @@
 #include <boost/fusion/tuple.hpp>
 #include <boost/program_options.hpp>
 
-#include <curl/curl.h>
+#include <QtCore/QString>
+#include <QtCore/QTextStream>
+#include <QtCore/QUrl>
 
 using namespace boost::spirit;
 
@@ -162,30 +164,37 @@ if (vm.count("omit-new-lines") > 0)
 
 size_t line = 0;
 
-std::string str_in;
 unsigned result;
 myGrammar<std::string::iterator> grammar;
 
-while (std::getline(std::cin, str_in))
+
+QTextStream qtin(stdin);
+while (!qtin.atEnd())
 {
   ++line;
+  QString str_in = qtin.readLine();
 
-  if (str_in.empty())
+  if (str_in.isEmpty())
     continue;
+
+  QString decoded = QUrl::fromPercentEncoding(str_in.toUtf8());
 
 /*
   if (omit)
     str_in.erase(std::remove(str_in.begin(), str_in.end(), '\n'), str_in.end());
-    */
+*/
 
-  std::string str = curl_unescape(str_in.c_str(),str_in.length());
 
-  std::string::iterator strbegin = str.begin();
+  std::string str = decoded.toStdString(); // toStdString() strips all non-ASCII chars
+
+  std::string::iterator begin = str.begin();
+  std::string::iterator end = str.end();
+
   std::vector<std::string> p;
 
-  bool r = qi::parse(strbegin, str.end(), grammar, p);
+  bool r = qi::parse(begin, end, grammar, p);
   
-  if (r && strbegin == str.end())
+  if (r && begin == end)
   {
     for (auto& i : p)
     {

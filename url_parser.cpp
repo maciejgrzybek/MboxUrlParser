@@ -1,11 +1,14 @@
 #include <iostream>
 #include <algorithm>
+#include <vector>
+#include <string>
 
 #include <boost/program_options.hpp>
 
 #include <QtCore/QString>
 #include <QtCore/QTextStream>
 #include <QtCore/QUrl>
+#include <QtCore/QFile>
 
 #include "grammar.hpp"
 
@@ -18,25 +21,43 @@ int main(int argc, char* argv[])
 
 po::options_description desc("Allowed options");
 desc.add_options()
-    ("help", "this is what you read")
-    ("omit-new-lines", "skips new line characters")
+    ("help,h", "this what you read")
+    ("input-file,f",po::value<std::string>(),"file to read mbox from")
 ;
 
 po::variables_map vm;
-po::store(po::parse_command_line(argc, argv, desc), vm);
+po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
+po::store(parsed, vm);
 po::notify(vm);
 
-if (vm.count("help") > 0)
+std::vector<std::string> unregistered = po::collect_unrecognized(parsed.options, po::include_positional);
+
+if (vm.count("help") > 0 || unregistered.size() > 0)
 {
+  if (unregistered.size() > 0)
+  {
+    std::cout << "Unknown option(s): " << std::endl;
+    for (auto& i : unregistered)
+      std::cout << i << std::endl;
+
+    std::cout << std::endl;
+  }
   std::cout << desc << std::endl;
   return 1;
 }
 
-bool omit = false;
-
-if (vm.count("omit-new-lines") > 0)
+QFile* file = NULL;
+QTextStream* qtin = NULL;
+if (vm.count("input-file") > 0)
 {
-  omit = true;
+  std::string inputFile = vm["input-file"].as<std::string>();
+  file = new QFile(QString(inputFile.c_str()));
+  file->open(QIODevice::ReadOnly);
+  qtin = new QTextStream(file);
+}
+else
+{
+  qtin = new QTextStream(stdin);
 }
 
 size_t line = 0;
@@ -44,11 +65,10 @@ size_t line = 0;
 unsigned result;
 myGrammar<std::string::iterator> grammar;
 
-QTextStream qtin(stdin);
-while (!qtin.atEnd())
+while (!qtin->atEnd())
 {
   ++line;
-  QString str_in = qtin.readLine();
+  QString str_in = qtin->readLine();
 
   if (str_in.isEmpty())
     continue;
@@ -86,6 +106,9 @@ while (!qtin.atEnd())
     // parsing failed, no action needed
   }
 }
+
+delete qtin;
+delete file;
 
 return 0;
 }

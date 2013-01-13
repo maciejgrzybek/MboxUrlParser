@@ -22,7 +22,8 @@ int main(int argc, char* argv[])
 po::options_description desc("Allowed options");
 desc.add_options()
     ("help,h", "this what you read")
-    ("input-file,f",po::value<std::string>(),"file to read mbox from")
+    ("input-file,i",po::value<std::string>(),"file to read mbox from")
+    ("output-file,o",po::value<std::string>(),"file to write URLs to")
 ;
 
 po::variables_map vm;
@@ -46,18 +47,31 @@ if (vm.count("help") > 0 || unregistered.size() > 0)
   return 1;
 }
 
-QFile* file = NULL;
+QFile* fileIn = NULL;
+QFile* fileOut = NULL;
 QTextStream* qtin = NULL;
+QTextStream* qtout = NULL;
 if (vm.count("input-file") > 0)
 {
   std::string inputFile = vm["input-file"].as<std::string>();
-  file = new QFile(QString(inputFile.c_str()));
-  file->open(QIODevice::ReadOnly);
-  qtin = new QTextStream(file);
+  fileIn = new QFile(QString(inputFile.c_str()));
+  fileIn->open(QIODevice::ReadOnly);
+  qtin = new QTextStream(fileIn);
 }
 else
 {
   qtin = new QTextStream(stdin);
+}
+if (vm.count("output-file") > 0)
+{
+  std::string outputFile = vm["output-file"].as<std::string>();
+  fileOut = new QFile(QString(outputFile.c_str()));
+  fileOut->open(QIODevice::WriteOnly); 
+  qtout = new QTextStream(fileOut);
+}
+else
+{
+  qtout = new QTextStream(stdout);
 }
 
 size_t line = 0;
@@ -98,7 +112,7 @@ while (!qtin->atEnd())
   {
     for (auto& i : p)
     {
-      std::cout << line << " : " << i << std::endl;
+      *qtout << line << " : " << QString(i.c_str()) << endl;
     }
   }
   else
@@ -108,7 +122,9 @@ while (!qtin->atEnd())
 }
 
 delete qtin;
-delete file;
+delete fileIn;
+delete qtout;
+delete fileOut;
 
 return 0;
 }
